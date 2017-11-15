@@ -1,3 +1,27 @@
+#' Calculate APRs
+#'
+calculate_aprs <- function(dt) {
+  if (!all(c('fixed_30yr_rate', 'fixed_30yr_points') %in% names(dt)))
+    stop('Fixed rate information not included in data.frame sent to calculate_aprs')
+
+  n <- dim(dt)[1]
+
+  fa_30yr <- vapply(1:n,
+                    function(i, dt) calculate_apr_fixed(dt$fixed_30yr_rate[i],
+                                                        dt$fixed_30yr_points[i],
+                                                        t = 360L),
+                    1.2,
+                    dt = dt)
+
+  fa_15yr <- vapply(1:n,
+                    function(i, dt) calculate_apr_fixed(dt$fixed_15yr_rate[i],
+                                                        dt$fixed_15yr_points[i],
+                                                        t = 180L),
+                    1.2,
+                    dt = dt)
+
+}
+
 #' Fixed APR Calculation
 #'
 #' This function computes the APR for a fixed-rate loan.
@@ -17,7 +41,7 @@ calculate_apr_fixed <- function(r, p, t = 360L) {
   }
 
   root_val <- uniroot(g, c(0, max(c(r + p, r))), t = t, m = monthly_payment, af = amount_financed)
-  root_val$root
+  round(root_val$root, digits = 2)
 }
 
 #' @param rpm Interest rate per month (generally equals r / 1200)
