@@ -2,7 +2,7 @@
 #'
 #' This function will pull down the necessary data on Treasury yields and return
 #' a data.frame with the correct average T-bill rates for each PMMS date.
-retrieve_tbills <- function(year) {
+retrieve_tbills <- function() {
 
   tbill_data <- c(2008:as.integer(format(Sys.Date(), '%Y'))) %>%
     lapply(get_tbills_by_year) %>%
@@ -10,7 +10,7 @@ retrieve_tbills <- function(year) {
 
   mutate(tbill_data, day = weekdays(date)) %>%
     filter(day %in% c('Monday', 'Tuesday', 'Wednesday')) %>%
-    mutate(pmms_date = lubridate::floor_date(date, unit = 'week') + 8L) %>%
+    mutate(pmms_date = lubridate::floor_date(date, unit = 'week') + 11L) %>%
     group_by(pmms_date) %>%
     summarize(trate_1yr = mean(trate_1yr),
               trate_2yr = mean(trate_2yr),
