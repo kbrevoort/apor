@@ -10,7 +10,7 @@ retrieve_tbills <- function() {
 
   mutate(tbill_data, day = weekdays(date)) %>%
     filter(day %in% c('Monday', 'Tuesday', 'Wednesday')) %>%
-    mutate(pmms_date = lubridate::floor_date(date, unit = 'week') + 11L) %>%
+    mutate(pmms_date = lubridate::floor_date(date, unit = 'week') + 4L) %>%
     group_by(pmms_date) %>%
     summarize(trate_1yr = mean(trate_1yr),
               trate_2yr = mean(trate_2yr),

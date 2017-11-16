@@ -31,5 +31,9 @@ retrieve_pmms_data <- function() {
                          'arm_source',
                          'other_source')
 
-  table_data
+  mutate(table_data, pmms_date = as.Date(Date, format = '%B %d, %Y')) %>%
+    select(pmms_date, fixed_30yr_rate, fixed_30yr_points, fixed_15yr_rate, fixed_15yr_points,
+           arm_5yr_rate, arm_5yr_points, arm_5yr_margin, arm_1yr_rate, arm_1yr_points,
+           arm_1yr_margin) %>%
+    mutate(arm_1yr_points = round(arm_1yr_points, digits = 1))
 }

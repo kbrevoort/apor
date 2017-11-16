@@ -10,7 +10,8 @@ License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
 Suggests: 
-    data.table
+    data.table,
+    ustyc
 Imports: 
     tidyverse
 Roxygen: list(markdown = TRUE)
