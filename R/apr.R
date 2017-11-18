@@ -1,5 +1,10 @@
-#' Calculate APRs
+#' Calculate APORs
 #'
+#' This function calculates the Average Prime Offer Rates (APORs) for the dates
+#' for which data have been supplied.
+#' @param dt A data.frame of the type produced by assemble_date()
+#' @param type A character vector indicating if APORs are to be calculated for
+#' fixed- or adjustable-rate loans (e.g., 'fixed', 'arm')
 calculate_apors <- function(dt, type) {
   if (!(type %in% c('arm', 'fixed')))
     stop('Invalid type supplied to calculate_apors (only arm or fixed allowed).')
@@ -8,7 +13,7 @@ calculate_apors <- function(dt, type) {
   if (type == 'fixed')
     value_list <- c(value_list, c(15, 30))
 
-  my_data <- data.frame(date = dt$pmms_date + 4L)
+  my_data <- data.frame(date = dt$pmms_date + 4L) # Set date as Monday after PMMS published
   for (i in value_list) {
     my_data[[sprintf('%s_%dyr', type, i)]] <- calculate_apor(type, i, dt)
   }
@@ -133,7 +138,7 @@ calculate_apr_arm <- function(r, p, fi, initial_term) {
         payment[i] <- payment[i - 1]
       } else {                          # Potentially new interest rate
         irate[i] <- min(irate[i - 1] + 2, fi)
-        payment[i] <- calculate_monthly_payment(irate[i], 360L - i + 1, start_bal[i])
+        payment[i] <- calculate_monthly_payment(irate[i], 360L - i + 1L, start_bal[i])
       }
     } else {
       irate[i] <- irate[i - 1]
@@ -157,9 +162,15 @@ calculate_apr_arm <- function(r, p, fi, initial_term) {
 
 }
 
-#' @param rpm Interest rate per month (generally equals r / 1200)
+#' Calculate Monthly Payment
+#'
+#' This function calculates the monthly payment required to fully pay off a loan
+#' with a fixed term and a constant interest rate.
+#' @param r Annual interest rate as a percentage
 #' @param t Term of the loan in months
 #' @param l Loan amount (defaults to $1)
+#' @return The monthly payment required to fully payoff the loan by the end of the term.
+#' @export
 calculate_monthly_payment <- function(r, t, l = 1L) {
   r <- r / 1200L
   (r * ((1 + r) ^ t)) / (((1 + r) ^ t) - 1) * l
@@ -167,11 +178,14 @@ calculate_monthly_payment <- function(r, t, l = 1L) {
 
 #' Assemble Data
 #'
-#' This function will impute the rates, points, and margins necessary to produce
-#' APRs for a wider array of products than are included with the Freddie Mac PMMS
-#' data.
-#' @param dt A data.frame containing the table_data of Freddie Mac rates pulled from
-#' the FFIEC website
+#' This function compiles all of the information necessary to generate Average
+#' Prime Offer Rates (APORs).  This information includes values from the Freddie
+#' Mac Primary Mortgage Market Survey (PMMS) and U.S. Treasury yields. In addition
+#' to these data sources, the function also imputes values for intermediate terms
+#' as specified in the procedure for generating APORs.
+#' @return A data.frame that contains the interest rates, points and fees, and
+#' (for adjustable-rate loans) the margin for different term loans.
+#' @export
 assemble_data <- function() {
   tbill_data <- retrieve_tbills()
   pmms_data <- retrieve_pmms_data()
@@ -187,10 +201,6 @@ assemble_data <- function() {
     mutate(fixed_2yr_rate = round_higher(arm_1yr_rate - trate_1yr,
                                          arm_5yr_rate - trate_5yr,
                                          '2yr', 2) + trate_2yr) %>%
-    #mutate(fixed_3yr_rate = round((((arm_5yr_rate - trate_5yr) + (arm_1yr_rate - trate_1yr)) / 2) + trate_3yr,
-    #                              digits = 2L)) %>%
-    #mutate(fixed_2yr_rate = round((((arm_5yr_rate - trate_5yr) + 3 * (arm_1yr_rate - trate_1yr)) / 4) + trate_2yr,
-    #                              digits = 2L)) %>%
     mutate(fixed_1yr_rate = arm_1yr_rate) %>%
     mutate(fixed_10yr_points = arm_5yr_points) %>%
     mutate(fixed_7yr_points = arm_5yr_points) %>%
@@ -210,8 +220,6 @@ assemble_data <- function() {
     mutate(arm_7yr_margin = arm_5yr_margin) %>%
     mutate(arm_3yr_margin = round_higher(arm_1yr_margin, arm_5yr_margin, '3yr', 2L)) %>%
     mutate(arm_2yr_margin = round_higher(arm_1yr_margin, arm_5yr_margin, '2yr', 2L)) %>%
-    #mutate(arm_3yr_margin = round((arm_5yr_margin + arm_1yr_margin) / 2, digits = 2L)) %>%
-    #mutate(arm_2yr_margin = round((arm_5yr_margin + 3 * arm_1yr_margin) / 4, digits = 2L)) %>%
     mutate(arm_10yr_fi = round(arm_10yr_margin + trate_1yr, digits = 2L)) %>%
     mutate(arm_7yr_fi = round(arm_7yr_margin + trate_1yr, digits = 2L)) %>%
     mutate(arm_5yr_fi = round(arm_5yr_margin + trate_1yr, digits = 2L)) %>%
@@ -220,6 +228,18 @@ assemble_data <- function() {
     mutate(arm_1yr_fi = round(arm_1yr_margin + trate_1yr, digits = 2L))
 }
 
+#' Round Midpoint Values Up
+#'
+#' R's default rounding behavior is to round values of .5 to the nearest even
+#' integer. This creates inconsistencies with SAS, which rounds up in all cases.
+#' To match the published values of APOR, this function will round midpoint values
+#' up in all cases.
+#' @param x Value based on 1-year observations (Treasury or PMMS)
+#' @param y Value based on 5-year observations
+#' @param term Character value indicating if the rounding is being done for the
+#' 2-year or 3-year products.
+#' @param digits The number of digits to include in the value returned
+#' @return The weighted average of x and y
 round_higher <- function(x, y, term, digits) {
   x_mult <- ifelse(term == '2yr', 3L, 2L)
   adjustment <- 10^digits
@@ -233,21 +253,3 @@ round_higher <- function(x, y, term, digits) {
 
   ret_val / adjustment
 }
-
-#
-# # This function changes the rounding behavior in R to always round .5 upwards
-# round_points <- function(x, y, term) {
-#   x_mult <- ifelse(term == '2yr', 3L, 2L)
-#   total <- as.integer((round(x * 10, digits = 0) * x_mult) +
-#                         (round(y * 10, digits = 0) * (4 - x_mult)))
-#
-#   ret_val <- ifelse(total %% 4 %in% c(2, 3), ceiling(total / 4L), trunc(total / 4L))
-#
-#   ret_val / 10
-# }
-#
-# round_rates <- function(x, y, term) {
-#   x_mult <- ifelse(term == '2yr', 3L, 2L)
-#
-#   total <-
-# }
