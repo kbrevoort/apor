@@ -6,6 +6,13 @@
 \usage{
 retrieve_published_apors(type)
 }
+\arguments{
+\item{type}{The type of product ('fixed' or 'arm') to retrieve the APORS for.}
+}
+\value{
+A data.frame that lists the APORs for loan terms of between 1 and 50 years.
+}
 \description{
-Retrieve Published APOR Table
+This function will retrieve the APOR table published by the FFIEC for the
+current year. The table will be returned as a data.frame.
 }
