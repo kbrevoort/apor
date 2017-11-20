@@ -1,5 +1,5 @@
 compare_apors <- function(type) {
-  my_dt <- assemble_data()
+  my_dt <- suppressMessages(assemble_data())
 
   published <- retrieve_published_apors(type)
   my_apors <- calculate_apors(dt = my_dt, type)
@@ -14,16 +14,17 @@ compare_apors <- function(type) {
     y <- published[[my_var]]
 
     my_diff <- abs(x - y)
-    if (all(my_diff < 0.01)) {
+    #if (all(my_diff < 0.01)) {
+    if (all(my_diff == 0)) {
       sprintf('Complete match for term = %d\n', i) %>%
         cat()
     } else {
-      bads <- which(my_diff >= 0.01)
+      bads <- which(my_diff != 0.00)
       for (z in bads) {
-        sprintf('Bad match for term = %d at %s:  %f and %f\n', i, as.character(my_data$date[z]), x[z], y[z]) %>%
+        sprintf('Bad match for term = %d at %s:  %f and %f\n', i, as.character(my_dates[z]), x[z], y[z]) %>%
           cat()
       }
-      stop()
+      #stop()
     }
   }
 }

@@ -41,7 +41,7 @@ calculate_apors <- function(dt, type) {
     }
   }
 
-  select(my_data, date, sprintf('%s_%dyr', type, c(1:50)))
+  dplyr::select(my_data, date, sprintf('%s_%dyr', type, c(1:50)))
 }
 
 
@@ -105,6 +105,7 @@ calculate_apr_fixed <- function(r, p, t = 360L) {
 
   root_val <- uniroot(iterate_apr,
                       c(min_val, max_val),
+                      tol = 1e-7,
                       t = t,
                       m = monthly_payment,
                       af = amount_financed)
@@ -155,11 +156,11 @@ calculate_apr_arm <- function(r, p, fi, initial_term) {
 
   root_val <- uniroot(iterate_apr,
                       c(0, max(c(r + p, r, fi + p))),
+                      tol = 1e-7,
                       t = 360L,
                       m = payment,
                       af = 1 - (p / 100))
   round(root_val$root, digits = 2)
-
 }
 
 #' Calculate Monthly Payment
@@ -185,6 +186,8 @@ calculate_monthly_payment <- function(r, t, l = 1L) {
 #' as specified in the procedure for generating APORs.
 #' @return A data.frame that contains the interest rates, points and fees, and
 #' (for adjustable-rate loans) the margin for different term loans.
+#' @importFrom magrittr "%>%"
+#' @importFrom dplyr mutate
 #' @export
 assemble_data <- function() {
   tbill_data <- retrieve_tbills()
@@ -192,40 +195,40 @@ assemble_data <- function() {
 
   all_data <- merge(pmms_data, tbill_data,
         by = 'pmms_date') %>%
-    mutate(fixed_10yr_rate = (arm_5yr_rate - trate_5yr) + trate_10yr) %>%
-    mutate(fixed_7yr_rate = (arm_5yr_rate - trate_5yr) + trate_7yr) %>%
-    mutate(fixed_5yr_rate = arm_5yr_rate) %>%
-    mutate(fixed_3yr_rate = round_higher(arm_1yr_rate - trate_1yr,
+    dplyr::mutate(fixed_10yr_rate = (arm_5yr_rate - trate_5yr) + trate_10yr) %>%
+    dplyr::mutate(fixed_7yr_rate = (arm_5yr_rate - trate_5yr) + trate_7yr) %>%
+    dplyr::mutate(fixed_5yr_rate = arm_5yr_rate) %>%
+    dplyr::mutate(fixed_3yr_rate = round_higher(arm_1yr_rate - trate_1yr,
                                          arm_5yr_rate - trate_5yr,
                                          '3yr', 2) + trate_3yr) %>%
-    mutate(fixed_2yr_rate = round_higher(arm_1yr_rate - trate_1yr,
+    dplyr::mutate(fixed_2yr_rate = round_higher(arm_1yr_rate - trate_1yr,
                                          arm_5yr_rate - trate_5yr,
                                          '2yr', 2) + trate_2yr) %>%
-    mutate(fixed_1yr_rate = arm_1yr_rate) %>%
-    mutate(fixed_10yr_points = arm_5yr_points) %>%
-    mutate(fixed_7yr_points = arm_5yr_points) %>%
-    mutate(fixed_5yr_points = arm_5yr_points) %>%
-    mutate(fixed_3yr_points = round_higher(arm_1yr_points, arm_5yr_points, term = '3yr', 1L)) %>%
-    mutate(fixed_2yr_points = round_higher(arm_1yr_points, arm_5yr_points, term = '2yr', 1L)) %>%
-    mutate(fixed_1yr_points = arm_1yr_points) %>%
-    mutate(arm_10yr_rate = fixed_10yr_rate) %>%
-    mutate(arm_7yr_rate = fixed_7yr_rate) %>%
-    mutate(arm_3yr_rate = fixed_3yr_rate) %>%
-    mutate(arm_2yr_rate = fixed_2yr_rate) %>%
-    mutate(arm_10yr_points = fixed_10yr_points) %>%
-    mutate(arm_7yr_points = fixed_7yr_points) %>%
-    mutate(arm_3yr_points = fixed_3yr_points) %>%
-    mutate(arm_2yr_points = fixed_2yr_points) %>%
-    mutate(arm_10yr_margin = arm_5yr_margin) %>%
-    mutate(arm_7yr_margin = arm_5yr_margin) %>%
-    mutate(arm_3yr_margin = round_higher(arm_1yr_margin, arm_5yr_margin, '3yr', 2L)) %>%
-    mutate(arm_2yr_margin = round_higher(arm_1yr_margin, arm_5yr_margin, '2yr', 2L)) %>%
-    mutate(arm_10yr_fi = round(arm_10yr_margin + trate_1yr, digits = 2L)) %>%
-    mutate(arm_7yr_fi = round(arm_7yr_margin + trate_1yr, digits = 2L)) %>%
-    mutate(arm_5yr_fi = round(arm_5yr_margin + trate_1yr, digits = 2L)) %>%
-    mutate(arm_3yr_fi = round(arm_3yr_margin + trate_1yr, digits = 2L)) %>%
-    mutate(arm_2yr_fi = round(arm_2yr_margin + trate_1yr, digits = 2L)) %>%
-    mutate(arm_1yr_fi = round(arm_1yr_margin + trate_1yr, digits = 2L))
+    dplyr::mutate(fixed_1yr_rate = arm_1yr_rate) %>%
+    dplyr::mutate(fixed_10yr_points = arm_5yr_points) %>%
+    dplyr::mutate(fixed_7yr_points = arm_5yr_points) %>%
+    dplyr::mutate(fixed_5yr_points = arm_5yr_points) %>%
+    dplyr::mutate(fixed_3yr_points = round_higher(arm_1yr_points, arm_5yr_points, term = '3yr', 1L)) %>%
+    dplyr::mutate(fixed_2yr_points = round_higher(arm_1yr_points, arm_5yr_points, term = '2yr', 1L)) %>%
+    dplyr::mutate(fixed_1yr_points = arm_1yr_points) %>%
+    dplyr::mutate(arm_10yr_rate = fixed_10yr_rate) %>%
+    dplyr::mutate(arm_7yr_rate = fixed_7yr_rate) %>%
+    dplyr::mutate(arm_3yr_rate = fixed_3yr_rate) %>%
+    dplyr::mutate(arm_2yr_rate = fixed_2yr_rate) %>%
+    dplyr::mutate(arm_10yr_points = fixed_10yr_points) %>%
+    dplyr::mutate(arm_7yr_points = fixed_7yr_points) %>%
+    dplyr::mutate(arm_3yr_points = fixed_3yr_points) %>%
+    dplyr::mutate(arm_2yr_points = fixed_2yr_points) %>%
+    dplyr::mutate(arm_10yr_margin = arm_5yr_margin) %>%
+    dplyr::mutate(arm_7yr_margin = arm_5yr_margin) %>%
+    dplyr::mutate(arm_3yr_margin = round_higher(arm_1yr_margin, arm_5yr_margin, '3yr', 2L)) %>%
+    dplyr::mutate(arm_2yr_margin = round_higher(arm_1yr_margin, arm_5yr_margin, '2yr', 2L)) %>%
+    dplyr::mutate(arm_10yr_fi = round(arm_10yr_margin + trate_1yr, digits = 2L)) %>%
+    dplyr::mutate(arm_7yr_fi = round(arm_7yr_margin + trate_1yr, digits = 2L)) %>%
+    dplyr::mutate(arm_5yr_fi = round(arm_5yr_margin + trate_1yr, digits = 2L)) %>%
+    dplyr::mutate(arm_3yr_fi = round(arm_3yr_margin + trate_1yr, digits = 2L)) %>%
+    dplyr::mutate(arm_2yr_fi = round(arm_2yr_margin + trate_1yr, digits = 2L)) %>%
+    dplyr::mutate(arm_1yr_fi = round(arm_1yr_margin + trate_1yr, digits = 2L))
 }
 
 #' Round Midpoint Values Up
@@ -242,7 +245,7 @@ assemble_data <- function() {
 #' @return The weighted average of x and y
 round_higher <- function(x, y, term, digits) {
   x_mult <- ifelse(term == '2yr', 3L, 2L)
-  adjustment <- 10^digits
+  adjustment <- 10 ^ digits
 
   total <- as.integer((round(x * adjustment, digits = 0) * x_mult) +
                         (round(y * adjustment, digits = 0) * (4 - x_mult)))
@@ -252,4 +255,13 @@ round_higher <- function(x, y, term, digits) {
                     trunc(total / 4L))
 
   ret_val / adjustment
+}
+
+round_tbill <- function(x) {
+  x <- round(x * 1000, digits = 0)
+
+  ret_val <- ifelse((x %% 10) >= 5,
+         ceiling(x / 10L),
+         trunc(x / 10L))
+  ret_val / 100L
 }

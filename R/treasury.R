@@ -12,12 +12,12 @@ retrieve_tbills <- function() {
     filter(day %in% c('Monday', 'Tuesday', 'Wednesday')) %>%
     mutate(pmms_date = lubridate::floor_date(date, unit = 'week') + 4L) %>%
     group_by(pmms_date) %>%
-    summarize(trate_1yr = mean(trate_1yr),
-              trate_2yr = mean(trate_2yr),
-              trate_3yr = mean(trate_3yr),
-              trate_5yr = mean(trate_5yr),
-              trate_7yr = mean(trate_7yr),
-              trate_10yr = mean(trate_10yr))
+    summarize(trate_1yr = round_tbill(mean(trate_1yr)),
+              trate_2yr = round_tbill(mean(trate_2yr)),
+              trate_3yr = round_tbill(mean(trate_3yr)),
+              trate_5yr = round_tbill(mean(trate_5yr)),
+              trate_7yr = round_tbill(mean(trate_7yr)),
+              trate_10yr = round_tbill(mean(trate_10yr)))
 }
 
 get_tbills_by_year <- function(y) {
